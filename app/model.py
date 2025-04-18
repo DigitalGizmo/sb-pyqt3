@@ -666,3 +666,20 @@ class Model(qtc.QObject):
     def resetAtEnd(self):
         # Maybe this could go directly in callback?
         self.startResetSignal.emit()
+
+    def detachAllEventHandlers(self):
+        # Detach all VLC event handlers
+        try:
+            self.buzzEvents.event_detach(vlc.EventType.MediaPlayerEndReached)
+        except:
+            pass
+        
+        try:
+            self.toneEvents.event_detach(vlc.EventType.MediaPlayerEndReached)
+        except:
+            pass
+        
+        try:
+            self.vlcEvent.event_detach(vlc.EventType.MediaPlayerEndReached)
+        except:
+            pass

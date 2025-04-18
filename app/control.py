@@ -22,6 +22,7 @@ class MainWindow(qtw.QMainWindow):
     plugInToHandle = qtc.pyqtSignal(int)
     unPlugToHandle = qtc.pyqtSignal(int)
     # wiggleDetected = qtc.pyqtSignal()
+    interrupt = 17
 
     def __init__(self):
         # self.pygame.init()
@@ -122,62 +123,57 @@ class MainWindow(qtw.QMainWindow):
         self.mcp.clear_ints()  # Interrupts need to be cleared initially
         self.reset()
 
-        # connect either interrupt pin to the Raspberry pi's pin 17.
-        # They were previously configured as mirrored.
+        # Instead of defining checkPin inside __init__, use:
+        self.interrupt = 17  # Define as an instance variable for reuse in reset()
         GPIO.setmode(GPIO.BCM)
-        interrupt = 17
-        GPIO.setup(interrupt, GPIO.IN, GPIO.PUD_UP)  # Set up Pi's pin as input, pull up
 
-        # -- code for detection --
-        def checkPin(port):
-            """Callback function to be called when an Interrupt occurs.
-            The signal for pluginEventDetected calls a timer -- it can't send
-            a parameter, so the work-around is to set pin_flag as a global.
-            """
-            for pin_flag in self.mcp.int_flag:
-                # print("Interrupt connected to Pin: {}".format(port))
-                print(f"* Interrupt - pin number: {pin_flag} changed to: {self.pins[pin_flag].value}")
+        # First remove any existing event detection
+        try:
+            GPIO.remove_event_detect(self.interrupt)
+        except:
+            pass  # Handle exception if no event detection exists
 
-                # Test for phone jack vs start and stop buttons
-                if (pin_flag < 12):
-                    # Don't restart this interrupt checking if we're still
-                    # in the pause part of bounce checking
-                    if (not self.just_checked):
-                        self.pinFlag = pin_flag
+        GPIO.setup(self.interrupt, GPIO.IN, GPIO.PUD_UP)
+        GPIO.add_event_detect(self.interrupt, GPIO.BOTH, callback=self.checkPin, bouncetime=50)
 
-                            # # Disabling wiggle check
-                            # # # If this pin is in, delay before checking
-                            # # # to protect against inadvertent wiggle
-                            # if (self.model.getIsPinIn(pin_flag) == True):
-                            #     # print(f" ** pin {pin_flag} is already in - so wiggle wait")
-                            #     # This will trigger a pause
-                            #     self.wiggleDetected.emit()
-                            # else: # pin is not in, new event
-                            #     # elif (not self.awaitingRestart):
+    def checkPin(self, port):
+        """Callback function to be called when an Interrupt occurs.
+        The signal for pluginEventDetected calls a timer -- it can't send
+        a parameter, so the work-around is to set pin_flag as a global.
+        """
+        for pin_flag in self.mcp.int_flag:
+            # print("Interrupt connected to Pin: {}".format(port))
+            print(f"* Interrupt - pin number: {pin_flag} changed to: {self.pins[pin_flag].value}")
 
-                            #     # do standard check
-                            #     self.just_checked = True
-                            #     # The following signal starts a timer that will continue
-                            #     # the check. This provides bounce protection
-                            #     # This signal is separate from the main python event loop
-                            #     # This emit will start bounc_timer with 300
-                            #     self.plugEventDetected.emit()
-                            
-                        self.plugEventDetected.emit()
-                        # Starts bounceTimer which call continuePinCheck
+            # Test for phone jack vs start and stop buttons
+            if (pin_flag < 12):
+                # Don't restart this interrupt checking if we're still
+                # in the pause part of bounce checking
+                if (not self.just_checked):
+                    self.pinFlag = pin_flag
+                    
+                    self.plugEventDetected.emit()
+                    # Starts bounceTimer which call continuePinCheck
 
-                else:
-                    print(" * got to interupt 12 or greater \n")
-                    if (pin_flag == 13 and self.pins[13].value == False):
-                        # if (self.pins[13].value == False):
-                        self.startPressed.emit() # Calls startReset
-                        
-                    # self.pinsLed[0].value = True
-        # As of 2024-03-23 bounctime had been 100, changed to 150
-        GPIO.add_event_detect(interrupt, GPIO.BOTH, callback=checkPin, bouncetime=50)
+            else:
+                print(" * got to interupt 12 or greater \n")
+                if (pin_flag == 13 and self.pins[13].value == False):
+                    # if (self.pins[13].value == False):
+                    self.startPressed.emit() # Calls startReset
+
 
     def reset(self):
+        print('* starting reset')
+        
+        # Remove the existing event detection
+        try:
+            GPIO.remove_event_detect(self.interrupt)
+        except:
+            pass
+        
+        # Clear interrupts
         self.mcp.clear_ints()
+        
         self.label.setText("Press the Start button to begin!")
         self.just_checked = False
         self.pinFlag = 15
@@ -185,24 +181,45 @@ class MainWindow(qtw.QMainWindow):
         self.awaitingRestart = False
         self.captionIndex = 0
 
+        print('* about to reset pins')
+
+        # Synchronize pin states with model
+        for pinIndex in range(0, 12):
+            is_pin_in = self.pins[pinIndex].value == False
+            self.model.setPinIn(pinIndex, is_pin_in)
+
         # Set to input - later will get intrrupt as well
         for pinIndex in range(0, 16):
             self.pins[pinIndex].direction = Direction.INPUT
             self.pins[pinIndex].pull = Pull.UP
-        # Set to output
+        
+        # Set LEDs to output and off
         for pinIndex in range(0, 12):
-           self.pinsLed[pinIndex].switch_to_output(value=False)
+            self.pinsLed[pinIndex].switch_to_output(value=False)
 
-        self.mcp.clear_ints()  # Interrupts need to be cleared initially
+        print('* about to detach events')
+
+        # Ensure all VLC event handlers are detached
+        self.model.detachAllEventHandlers()
 
         if self.bounceTimer.isActive():
             self.bounceTimer.stop()
         if self.blinkTimer.isActive():
             self.blinkTimer.stop()            
-        # if self.wiggleTimer.isActive():
-            # self.wiggleTimer.stop()  
         if self.captionTimer.isActive():
             self.captionTimer.stop()  
+
+        # Reconfigure the MCP23017 interrupt system
+        self.mcp.interrupt_configuration = 0x0000  # interrupt on any change
+        self.mcp.io_control = 0x44  # Interrupt as open drain and mirrored
+        self.mcp.clear_ints()  # Final clear of interrupts
+        
+        # Set up the GPIO pin again before adding event detection
+        GPIO.setup(self.interrupt, GPIO.IN, GPIO.PUD_UP)
+
+        # Re-add the event detection
+        GPIO.add_event_detect(self.interrupt, GPIO.BOTH, callback=self.checkPin, bouncetime=50)        
+        print('* done with reset')
 
         # self.setLED(0, True)          
         # self.setLED(1, True)          
