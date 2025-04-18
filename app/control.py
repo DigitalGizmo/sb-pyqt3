@@ -67,7 +67,9 @@ class MainWindow(qtw.QMainWindow):
         # self.wiggleTimer.timeout.connect(self.checkWiggle)
 
         # Self (control) for gpio related, self.model for audio
-        self.startPressed.connect(self.startReset)
+        # self.startPressed.connect(self.prepReset)
+        self.startPressed.connect(self.startSim)
+
         # self.startPressed.connect(self.model.handleStart)
 
         # Bounce timer less than 200 cause failure to detect 2nd line
@@ -85,7 +87,9 @@ class MainWindow(qtw.QMainWindow):
         # self.model.checkPinsInEvent.connect(self.checkPinsIn)
         self.model.displayCaptionSignal.connect(self.displayCaptions)
         self.model.stopCaptionSignal.connect(self.stopCaptions)
-        self.model.startResetSignal.connect(self.startReset)
+        # Will be replaced with call to stopSim
+        # self.model.prepResetSignal.connect(self.prepReset)
+        self.model.stopSimSignal.connect(self.stopSim)
    
 
         # Initialize the I2C bus:
@@ -159,18 +163,53 @@ class MainWindow(qtw.QMainWindow):
                 print(" * got to interupt 12 or greater \n")
                 if (pin_flag == 13 and self.pins[13].value == False):
                     # if (self.pins[13].value == False):
-                    self.startPressed.emit() # Calls startReset
+                    self.startPressed.emit() # Calls prepReset
+                elif (pin_flag == 12):
+                    print(f'   * got to stop, aka pin 12, ' + str(self.pins[13].value))
+                # else:
+                #     print(f' * pin_flag: ' + str(pin_flag))
 
+
+    def stopSim(self):
+        print('stopping sim')
+        self.prepReset()
+        if (self.getAnyPinsIn()):
+            self.label.setText("Remove phone plugs and when you're ready, press Start")
+        else:
+            self.reset()
+            print('press start to begin')
+            # self.model.handleStart()        
+
+    def startSim(self):
+        self.prepReset()
+        if (self.getAnyPinsIn()):
+            self.label.setText("Remove phone plugs and when you're ready, press Start")
+        else:
+            self.reset()
+            self.model.handleStart()
+
+    def prepReset(self):
+        print(" * resetting, starting")
+        self.awaitingRestart = True
+        self.stopCaptions()
+        self.setLEDsOff()
+        self.model.stopAllAudio()
+        self.model.stopTimers()
+        # _anyPinsIn = self.getAnyPinsIn()
+        # print(f"in reset, anyPinsIn =  {_anyPinsIn}")
+        # if (_anyPinsIn):
+        # if (self.getAnyPinsIn()):
+        #     self.label.setText("Remove phone plugs and when you're ready, press Start")
+        # else:
+        #     self.reset()
+        #     self.model.handleStart()
 
     def reset(self):
-        print('* starting reset')
-        
         # Remove the existing event detection
         try:
             GPIO.remove_event_detect(self.interrupt)
         except:
             pass
-        
         # Clear interrupts
         self.mcp.clear_ints()
         
@@ -180,8 +219,6 @@ class MainWindow(qtw.QMainWindow):
         self.pinToBlink = 0
         self.awaitingRestart = False
         self.captionIndex = 0
-
-        print('* about to reset pins')
 
         # Synchronize pin states with model
         for pinIndex in range(0, 12):
@@ -196,8 +233,6 @@ class MainWindow(qtw.QMainWindow):
         # Set LEDs to output and off
         for pinIndex in range(0, 12):
             self.pinsLed[pinIndex].switch_to_output(value=False)
-
-        print('* about to detach events')
 
         # Ensure all VLC event handlers are detached
         self.model.detachAllEventHandlers()
@@ -219,7 +254,6 @@ class MainWindow(qtw.QMainWindow):
 
         # Re-add the event detection
         GPIO.add_event_detect(self.interrupt, GPIO.BOTH, callback=self.checkPin, bouncetime=50)        
-        print('* done with reset')
 
         # self.setLED(0, True)          
         # self.setLED(1, True)          
@@ -265,7 +299,6 @@ class MainWindow(qtw.QMainWindow):
         # qtc.QTimer.singleShot(300, self.delayedFinishCheck)
         # qtc.QTimer.singleShot(70, self.delayedFinishCheck)
         qtc.QTimer.singleShot(150, self.delayedFinishCheck)
-
 
     def delayedFinishCheck(self):
         # This just delay resetting just_checked
@@ -319,22 +352,6 @@ class MainWindow(qtw.QMainWindow):
             if self.pins[pinIndex].value == False:
                 anyPinsIn = True
         return anyPinsIn
-
-    def startReset(self):
-        print(" * resetting, starting")
-        self.awaitingRestart = True
-        self.stopCaptions()
-        self.setLEDsOff()
-        self.model.stopAllAudio()
-        self.model.stopTimers()
-        # _anyPinsIn = self.getAnyPinsIn()
-        # print(f"in reset, anyPinsIn =  {_anyPinsIn}")
-        # if (_anyPinsIn):
-        if (self.getAnyPinsIn()):
-            self.label.setText("Remove phone plugs and when you're ready, press Start")
-        else:
-            self.reset()
-            self.model.handleStart()
 
     def stopCaptions(self):
         self.areCaptionsContinuing = False

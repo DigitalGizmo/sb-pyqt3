@@ -21,7 +21,7 @@ class Model(qtc.QObject):
     blinkerStop = qtc.pyqtSignal()
     displayCaptionSignal = qtc.pyqtSignal(str, str)
     stopCaptionSignal = qtc.pyqtSignal()
-    startResetSignal = qtc.pyqtSignal()
+    stopSimSignal = qtc.pyqtSignal()
     # Doesn't seem to be used
     checkPinsInEvent = qtc.pyqtSignal() 
     
@@ -66,7 +66,7 @@ class Model(qtc.QObject):
 
         self.resetEndTimer = qtc.QTimer()
         self.resetEndTimer.setSingleShot(True)
-        # self.resetEndTimer.timeout.connect(self.startResetSignal.emit())
+        # self.resetEndTimer.timeout.connect(self.stopSimSignal.emit())
         self.resetEndTimer.timeout.connect(self.resetAtEnd)
 
         self.playRequestCorrectSignal.connect(self.playRequestCorrect)
@@ -628,10 +628,6 @@ class Model(qtc.QObject):
         """Just for startup
         """
         print(" - got to model.handleStart")
-        self.reset()
-
-
-        print(f" -- Playing Welcome")
         # Set callback for welcome track finish
         self.vlcEvent.event_attach(vlc.EventType.MediaPlayerEndReached, 
             self.afterWelcome)  
@@ -648,7 +644,7 @@ class Model(qtc.QObject):
         print(' - auto starting reset')
         self.buzzEvents.event_detach(vlc.EventType.MediaPlayerEndReached)
         self.blinkerStop.emit()
-        self.startResetSignal.emit()
+        self.stopSimSignal.emit()
 
     def restartOnEndTimeout(self, event):
         print(' - Starting reset after End')
@@ -660,12 +656,12 @@ class Model(qtc.QObject):
         # Couldn't use setTimeToNextSignal because that's hard-wired to starting calls
 
     def startEndTimer(self):
-        # Timer will call self.startResetSignal.emit()
+        # Timer will call self.stopSimSignal.emit()
         self.resetEndTimer.start(2000)
 
     def resetAtEnd(self):
         # Maybe this could go directly in callback?
-        self.startResetSignal.emit()
+        self.stopSimSignal.emit()
 
     def detachAllEventHandlers(self):
         # Detach all VLC event handlers
