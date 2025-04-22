@@ -22,6 +22,7 @@ class MainWindow(qtw.QMainWindow):
     plugInToHandle = qtc.pyqtSignal(int)
     unPlugToHandle = qtc.pyqtSignal(int)
     # wiggleDetected = qtc.pyqtSignal()
+    awaitingRestart = False
     interrupt = 17
 
     def __init__(self):
@@ -67,7 +68,6 @@ class MainWindow(qtw.QMainWindow):
         # self.wiggleTimer.timeout.connect(self.checkWiggle)
 
         # Self (control) for gpio related, self.model for audio
-        # self.startPressed.connect(self.prepReset)
         self.startPressed.connect(self.startSim)
 
         # self.startPressed.connect(self.model.handleStart)
@@ -87,8 +87,6 @@ class MainWindow(qtw.QMainWindow):
         # self.model.checkPinsInEvent.connect(self.checkPinsIn)
         self.model.displayCaptionSignal.connect(self.displayCaptions)
         self.model.stopCaptionSignal.connect(self.stopCaptions)
-        # Will be replaced with call to stopSim
-        # self.model.prepResetSignal.connect(self.prepReset)
         self.model.stopSimSignal.connect(self.stopSim)
    
 
@@ -163,46 +161,42 @@ class MainWindow(qtw.QMainWindow):
                 print(" * got to interupt 12 or greater \n")
                 if (pin_flag == 13 and self.pins[13].value == False):
                     # if (self.pins[13].value == False):
-                    self.startPressed.emit() # Calls prepReset
+                    self.startPressed.emit() # Calls stopMedia
                 elif (pin_flag == 12):
-                    print(f'   * got to stop, aka pin 12, ' + str(self.pins[13].value))
+                    print(f'   * got to stop, aka pin 12, ' + str(self.pins[12].value))
+                    self.stopSim()
                 # else:
                 #     print(f' * pin_flag: ' + str(pin_flag))
 
 
     def stopSim(self):
         print('stopping sim')
-        self.prepReset()
-        if (self.getAnyPinsIn()):
-            self.label.setText("Remove phone plugs and when you're ready, press Start")
-        else:
-            self.reset()
-            print('press start to begin')
-            # self.model.handleStart()        
+        self.label.setText("The Switchboard has stopped. Press the Start button to begin!")
+
+        self.stopMedia()
+        
+        # if (self.getAnyPinsIn()):
+        #     self.label.setText("Remove phone plugs and when you're ready, press Start")
+        # else:
+        #     self.reset()
+        #     print('press start to begin')
+        #     # self.model.handleStart()        
 
     def startSim(self):
-        self.prepReset()
+        self.stopMedia()
         if (self.getAnyPinsIn()):
             self.label.setText("Remove phone plugs and when you're ready, press Start")
         else:
             self.reset()
             self.model.handleStart()
 
-    def prepReset(self):
+    def stopMedia(self):
         print(" * resetting, starting")
         self.awaitingRestart = True
         self.stopCaptions()
         self.setLEDsOff()
         self.model.stopAllAudio()
         self.model.stopTimers()
-        # _anyPinsIn = self.getAnyPinsIn()
-        # print(f"in reset, anyPinsIn =  {_anyPinsIn}")
-        # if (_anyPinsIn):
-        # if (self.getAnyPinsIn()):
-        #     self.label.setText("Remove phone plugs and when you're ready, press Start")
-        # else:
-        #     self.reset()
-        #     self.model.handleStart()
 
     def reset(self):
         # Remove the existing event detection

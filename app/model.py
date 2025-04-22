@@ -28,7 +28,8 @@ class Model(qtc.QObject):
     # The following signals are local
     # Need to avoid thread conflicts
     setTimeToNextSignal = qtc.pyqtSignal(int)
-    setTimeToEndSignal = qtc.pyqtSignal(int)
+    # setTimeToEndSignal = qtc.pyqtSignal(int)
+    setTimeToEndSignal = qtc.pyqtSignal()
     checkDualUnplugSignal = qtc.pyqtSignal(int)
     playRequestCorrectSignal = qtc.pyqtSignal()
 
