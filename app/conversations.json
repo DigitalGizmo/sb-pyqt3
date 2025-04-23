@@ -66,7 +66,7 @@
     "okTimeConvo": 5760
   },  
   {
-    "callLabel": "new: index 6 , call 7 Teen to Mina",
+    "callLabel": "new: index 6 , call 7 Cleo to Mina",
     "caller": { "index": 10}, "callerLabel": " Cleo Bryant",
     "callee":{"index": 0}, "calleeLabel": "  Mina",
     "helloFile": "11a-Cleo_Calls_Operator",

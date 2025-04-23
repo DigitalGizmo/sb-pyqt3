@@ -56,7 +56,7 @@ class MainWindow(qtw.QMainWindow):
         
         # Calculate position and size based on percentages
         # width = int(screen_width * 0.8)  # 80% of screen width
-        height = int(screen_height * 0.4)  # 60% of screen height
+        height = int(screen_height * 0.3)  # 60% of screen height
         # x = int((screen_width - width) / 2)  # Center horizontally
         # y = int((screen_height - height) / 2)  # Center vertically
         y = int(screen_height - height)  # Center vertically
