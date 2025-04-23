@@ -252,6 +252,8 @@ class MainWindow(qtw.QMainWindow):
         for pinIndex in range(0, 12):
             self.pinsLed[pinIndex].switch_to_output(value=False)
 
+        # Call model's reset
+        self.model.reset()
         # Ensure all VLC event handlers are detached
         self.model.detachAllEventHandlers()
 
