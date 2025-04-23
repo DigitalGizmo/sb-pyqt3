@@ -89,7 +89,7 @@ class Model(qtc.QObject):
         # rather than in control which would require a lot of signaling.
         self.pinsIn = [False,False,False,False,False,False,False,False,False,False,False,False,False,False]
         
-        self.currConvo = 0
+        self.currConvo = 3
         self.currCallerIndex = 0
         self.currCalleeIndex = 0
         # self.whichLineInUse = -1
@@ -195,19 +195,26 @@ class Model(qtc.QObject):
 
     def endOperatorOnlyHello(self, event): # , lineIndex
         print("  - About to detach vlcEvent in endOperatorOnlyHello")
+        print(f'  - event: {event}')
 
         if ( event != None):
+            print('  - got to event !=None')
             self.toneEvents.event_detach(vlc.EventType.MediaPlayerEndReached)
 
         #  supress further callbacks self.supressCallback
         # Don't know what this did in software proto
         # setHelloOnlyCompleted(lineIndex)
         self.clearTheLine() # lineIndex
-        print(f" - Hello-only ended.  Bump currConvo from {self.currConvo}")
-        self.currConvo += 1
-        # Timers can't be started from another thread
-        # If convo index is 8 we'll restart in 
-        self.setTimeToNextSignal.emit(1000)
+
+        # Check if we've already incremented - this is the key change
+        if not self.incrementJustCalled:
+            print(f" - Hello-only ended.  Bump currConvo from {self.currConvo}")
+            self.incrementJustCalled = True
+            self.currConvo += 1
+            # Timers can't be started from another thread
+            self.setTimeToNextSignal.emit(1000)
+        else:
+            print(f" - Hello-only ended, but currConvo already incremented to {self.currConvo}")
 
     def playConvo(self, currConvo): # , lineIndex
         """
