@@ -3,6 +3,7 @@ import sys
 from PyQt5 import QtWidgets as qtw
 from PyQt5 import QtCore as qtc
 from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import QDesktopWidget
 
 import vlc
 import board
@@ -34,11 +35,34 @@ class MainWindow(qtw.QMainWindow):
         self.label = qtw.QLabel(self)
         self.label.setWordWrap(True)
         # self.label.setText("Keep your ears open for incoming calls! ")
-        self.label.setAlignment(qtc.Qt.AlignTop)
 
+        self.label.setAlignment(qtc.Qt.AlignTop)
+        # Set margins using stylesheet
+        self.label.setStyleSheet("""
+            QLabel {
+                margin-left: 30px;
+                margin-top: 20px;
+            }
+        """)
+        # padding: 10px;
         # Large text
         self.label.setFont(QFont('Arial',30))
-        self.setGeometry(20,80,1200,400)
+
+
+        # Get screen dimensions
+        screen = QDesktopWidget().screenGeometry()
+        screen_width = screen.width()
+        screen_height = screen.height()
+        
+        # Calculate position and size based on percentages
+        # width = int(screen_width * 0.8)  # 80% of screen width
+        height = int(screen_height * 0.4)  # 60% of screen height
+        # x = int((screen_width - width) / 2)  # Center horizontally
+        # y = int((screen_height - height) / 2)  # Center vertically
+        y = int(screen_height - height)  # Center vertically
+        
+        # Apply geometry
+        self.setGeometry(0, y, screen_width, height)
 
         # # Small text for debug
         # self.label.setFont(QFont('Arial',16))

@@ -8,4 +8,4 @@ Neighbor: [Knocking sound] Hey Tressa, did you hear? There's a fire at Libby's F
 
 3
 00:00:10,317 --> 00:00:11,964
-Tressa: Never mind
+Tressa: Never mind operator.
