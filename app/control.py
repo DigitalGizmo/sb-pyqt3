@@ -221,6 +221,13 @@ class MainWindow(qtw.QMainWindow):
         self.setLEDsOff()
         self.model.stopAllAudio()
         self.model.stopTimers()
+        # Stop blinking
+        if self.bounceTimer.isActive():
+            self.bounceTimer.stop()
+        if self.blinkTimer.isActive():
+            self.blinkTimer.stop()            
+        if self.captionTimer.isActive():
+            self.captionTimer.stop()  
 
     def reset(self):
         # Remove the existing event detection
@@ -257,6 +264,8 @@ class MainWindow(qtw.QMainWindow):
         # Ensure all VLC event handlers are detached
         self.model.detachAllEventHandlers()
 
+        # Maybe move these to stopMedia()
+        # self.stopMedia()
         if self.bounceTimer.isActive():
             self.bounceTimer.stop()
         if self.blinkTimer.isActive():

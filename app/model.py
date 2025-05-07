@@ -495,21 +495,22 @@ class Model(qtc.QObject):
             # if unplugStatus is 1 that is WrongNumInProg and we should __?
             # I get here whether I've unplugged during the wrong answer or after it's finished
             # If wrong number, hmm need plug status for wrong number
-            if (self.phoneLine["unPlugStatus"] == 1):
-                print(' -- [3] got to unplug while WrongINProg')
-                self.vlcPlayer.stop() 
-                self.vlcEvent.event_detach(vlc.EventType.MediaPlayerEndReached)
-                # if (personIdx < 99):
-                self.setLEDSignal.emit(personIdx, False)
-                # clear the unplug status
-                self.phoneLine["unPlugStatus"] = self.NO_UNPLUG_STATUS
+            # if (self.phoneLine["unPlugStatus"] == 1): # WRONG_NUM_IN_PROGRESS
+            #     print(' -- [3] got to unplug while WrongINProg')
+            #     self.vlcPlayer.stop() 
+            #     self.vlcEvent.event_detach(vlc.EventType.MediaPlayerEndReached)
+            #     # if (personIdx < 99):
+            #     self.setLEDSignal.emit(personIdx, False)
+            #     # clear the unplug status
+            #     self.phoneLine["unPlugStatus"] = self.NO_UNPLUG_STATUS
 
-                print(' -- [3.2] would be doing: startPlayRequestCorrect')
-                # self.startPlayRequestCorrect(None)
+            #     print(' -- [3.2] would be doing: startPlayRequestCorrect')
+            #     # self.startPlayRequestCorrect(None)
 
             # # First, maybe this is an unplug of "old" call to free up the plugg
             # # caller would be plugged
-            elif (self.phoneLine["caller"]["isPlugged"] == True):
+            # elif (self.phoneLine["caller"]["isPlugged"] == True):
+            if (self.phoneLine["caller"]["isPlugged"] == True):
                 # Caller has initiated a call
 
                 # If this is the caller being unplugged (erroneously or early)
