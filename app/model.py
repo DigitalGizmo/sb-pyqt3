@@ -77,8 +77,6 @@ class Model(qtc.QObject):
         self.checkDualUnplugSignal.connect(self.dualUnplugTimer.start)
         self.dualUnplugTimer.timeout.connect(self.checkDualUnplug)
 
-
-
         self.reset()
 
     def reset(self):
@@ -244,7 +242,7 @@ class Model(qtc.QObject):
         self.displayCaptionSignal.emit('convo', conversations[_currConvo]["convoFile"])
 
     def playWrongNum(self, pluggedPersonIdx): # , lineIndex
-        print(f"got to play wrong number, currConvo: {self.currConvo}")
+        print(f" -- [2] got to play wrong number, currConvo: {self.currConvo}")
         # Long VLC way of creating callback
         self.toneEvents.event_attach(vlc.EventType.MediaPlayerEndReached, 
             self.playFullWrongNum, pluggedPersonIdx) # playFullConvo(currConvo, lineIndex)
@@ -275,7 +273,8 @@ class Model(qtc.QObject):
     def startPlayRequestCorrect(self, event): # , lineIndex
         print("  - About to detach vlcEvent in startPlayRequestCorrect")
 
-        self.vlcEvent.event_detach(vlc.EventType.MediaPlayerEndReached)
+        if (event is not None ):
+            self.vlcEvent.event_detach(vlc.EventType.MediaPlayerEndReached)
 
         # self.requestCorrectLine = lineIndex
         self.playRequestCorrectSignal.emit()
@@ -413,10 +412,6 @@ class Model(qtc.QObject):
             print(' -- else caller plugged. unPlugStatus: ' + str(self.phoneLine["unPlugStatus"]))
             if (not self.phoneLine["unPlugStatus"] == self.OP_ONLY_IN_PROGRESS):
 
-            
-
-                # print(f"Which line in use: {lineIdx}")
-                # if (lineIdx == self.whichLineInUse): # This is the line in use
                 # Whether or not this is correct callee -- turn LED on.
                 self.setLEDSignal.emit(personIdx, True)
                 # Set pinsIn True
@@ -442,7 +437,7 @@ class Model(qtc.QObject):
                     self.playConvo(self.currConvo)
 
                 else: # Wrong number
-                    print("wrong number")
+                    print(" -- |1| just plugged into wrong number")
                     self.phoneLine["unPlugStatus"] = self.WRONG_NUM_IN_PROGRESS
 
                     self.playWrongNum(personIdx) 
@@ -490,17 +485,31 @@ class Model(qtc.QObject):
             # and starting timer with this signal
             self.checkDualUnplugSignal.emit(90)
             
-
         # ---- Conversation NOT in progress --- 
         else:   
             # Phone line is not engaged -- isEngaged == False
-            print(f' - not engaged, callee index: {self.phoneLine["callee"]["index"]}'
+            print(f' - unplug while not engaged, callee index: {self.phoneLine["callee"]["index"]}'
                   f'    caller index: {self.phoneLine["caller"]["index"]}')
+
+            print(f'  -- unplugStatus: {self.phoneLine["unPlugStatus"]}')
+            # if unplugStatus is 1 that is WrongNumInProg and we should __?
+            # I get here whether I've unplugged during the wrong answer or after it's finished
             # If wrong number, hmm need plug status for wrong number
+            if (self.phoneLine["unPlugStatus"] == 1):
+                print(' -- [3] got to unplug while WrongINProg')
+                self.vlcPlayer.stop() 
+                self.vlcEvent.event_detach(vlc.EventType.MediaPlayerEndReached)
+                # if (personIdx < 99):
+                self.setLEDSignal.emit(personIdx, False)
+                # clear the unplug status
+                self.phoneLine["unPlugStatus"] = self.NO_UNPLUG_STATUS
+
+                print(' -- [3.2] would be doing: startPlayRequestCorrect')
+                # self.startPlayRequestCorrect(None)
 
             # # First, maybe this is an unplug of "old" call to free up the plugg
             # # caller would be plugged
-            if (self.phoneLine["caller"]["isPlugged"] == True):
+            elif (self.phoneLine["caller"]["isPlugged"] == True):
                 # Caller has initiated a call
 
                 # If this is the caller being unplugged (erroneously or early)
@@ -521,7 +530,7 @@ class Model(qtc.QObject):
                         self.callInitTimer.start(1000)
                 elif (self.phoneLine["unPlugStatus"] == self.WRONG_NUM_IN_PROGRESS):
                     # Unplugging wrong num
-                    print(f'  Unplug on wrong number, personIdx: {personIdx}')
+                    print(f' -- |2| Unplug on wrong number, personIdx: {personIdx}')
                     self.vlcPlayer.stop() 
                     # Cover for before personidx defined
                     if (personIdx < 99):

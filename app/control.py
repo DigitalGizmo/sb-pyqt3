@@ -276,7 +276,7 @@ class MainWindow(qtw.QMainWindow):
         GPIO.add_event_detect(self.interrupt, GPIO.BOTH, callback=self.checkPin, bouncetime=50)        
 
         # self.setLED(0, True)          
-        # self.setLED(1, True)          
+        # self.setLED(6, True)          
         # self.setLED(2, True)          
 
     def continueCheckPin(self):
